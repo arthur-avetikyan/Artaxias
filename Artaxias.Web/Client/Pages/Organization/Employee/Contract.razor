@@ -1,0 +1,64 @@
+﻿@page "/contracts/{ContractTemplateId:int}"
+
+@attribute [Authorize(Roles = "Administrator")]
+
+@if (ContractMappings == null || _availableProperties == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <EditForm Model="@ContractMappings" OnValidSubmit="@UploadTemplate">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <ProfileTopBar ReturnUrl="@_returnUrl">
+            @if (!_isEditEnabled)
+            {
+                <MatButton Label="Edit" Icon="@MatIconNames.Edit" OnClick="@(() => { _isEditEnabled = !_isEditEnabled; })"></MatButton>
+            }
+            else
+            {
+                <MatButton Type="reset" Label="Cancel" OnClick="@(() => { _isEditEnabled = !_isEditEnabled; })"></MatButton>
+                <MatButton Type="submit" Label="Save" Raised="true"></MatButton>
+            }
+        </ProfileTopBar>
+        <MatAccordion LazyRendering="@true">
+            <MatExpansionPanel Expanded="@true">
+                <MatExpansionPanelSummary>
+                    <MatExpansionPanelHeader>
+                        <MatH6>@ContractMappings.Title</MatH6>
+                    </MatExpansionPanelHeader>
+                </MatExpansionPanelSummary>
+                <MatExpansionPanelDetails>
+                    @foreach (var mappingKey in ContractMappings.Mappings.Keys)
+                    {
+                        var mappingValue = ContractMappings.Mappings.GetValueOrDefault(mappingKey);
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <MatBody2>@mappingKey</MatBody2>
+                            </div>
+                            <div class="col-md-6">
+                                @{
+                                    <MatSelect TValue="string" Value="@mappingValue" 
+                                               ValueExpression="@(() => mappingValue)"
+                                               ValueChanged="@((value) => ReplaceValue(mappingKey, value))"
+                                               Label="Field" HelperText="Pick Appropriate Field">
+                                        @foreach (var property in _availableProperties)
+                                        {
+                                            <MatOption TValue="string" Disabled="@(!_isEditEnabled)" Value="@property">@property</MatOption>
+                                        }
+                                    </MatSelect>
+                                }
+                            </div>
+                        </div>
+                        <MatDivider></MatDivider>
+                        <br />
+                    }
+                </MatExpansionPanelDetails>
+            </MatExpansionPanel>
+        </MatAccordion>
+    </EditForm>
+}

@@ -1,0 +1,60 @@
+﻿@using Artaxias.Web.Client.Pages.Organization.Absence
+
+@page "/employees/{EmployeeId:int}"
+@attribute [Authorize]
+
+@if (CurrentEmployee == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground> }
+else
+{
+    <ProfileTopBar ReturnUrl="@_returnUrl" IsAlignedLeft="true">
+        <MatH5>@CurrentEmployee.FullName</MatH5>
+    </ProfileTopBar>
+
+    <MatTabGroup @bind-ActiveIndex="@_tabIndex">
+        <AuthorizeView Context="AuthorizeContext">
+            <Authorized>
+                <MatTab>
+                    <LabelContent>Profile</LabelContent>
+                    <ChildContent>
+                        <EmployeeInfo EmployeeId="@EmployeeId" IsEditDisabled="@_isEditDisabled"></EmployeeInfo>
+                    </ChildContent>
+                </MatTab>
+                <AuthorizedAsAdminOrSelf UserName="@CurrentEmployee.UserName">
+                    <MatTab>
+                        <LabelContent>Salary</LabelContent>
+                        <ChildContent>
+                            <Salaries EmployeeId="@EmployeeId" IsContractEnded="@CurrentEmployee.ContractEnd.HasValue" ContractStartedAt="@CurrentEmployee.ContractStart">
+                            </Salaries>
+                        </ChildContent>
+                    </MatTab>
+                </AuthorizedAsAdminOrSelf>
+                <AuthorizedAsAdminOrSelf UserName="@CurrentEmployee.UserName">
+                    <MatTab>
+                        <LabelContent>Bonus</LabelContent>
+                        <ChildContent>
+                            <Bonuses EmployeeId="@EmployeeId" IsContractEnded="@CurrentEmployee.ContractEnd.HasValue" ContractStartedAt="@CurrentEmployee.ContractStart">
+                            </Bonuses>
+                        </ChildContent>
+                    </MatTab>
+                </AuthorizedAsAdminOrSelf>
+                <MatTab>
+                    <LabelContent>Absence</LabelContent>
+                    <ChildContent>
+                        <EmployeeAbsence EmployeeId="@EmployeeId" IsContractEnded="@CurrentEmployee.ContractEnd.HasValue" ContractStartedAt="@CurrentEmployee.ContractStart">
+                        </EmployeeAbsence>
+                    </ChildContent>
+                </MatTab>
+                <MatTab>
+                    <LabelContent>Feedback</LabelContent>
+                    <ChildContent>
+                        <EmployeeFeedbacks EmployeeId="@EmployeeId"></EmployeeFeedbacks>
+                    </ChildContent>
+                </MatTab>
+            </Authorized>
+        </AuthorizeView>
+    </MatTabGroup>
+}

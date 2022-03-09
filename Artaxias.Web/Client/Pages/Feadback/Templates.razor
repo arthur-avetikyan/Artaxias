@@ -1,0 +1,65 @@
+﻿@page "/templates"
+@attribute [Authorize]
+
+@using Artaxias.Web.Client.Pages.Organization.Employee
+
+<MatH4>Templates</MatH4>
+
+<MatTable Class="mat-elevation-z5" Items="@_templates" Striped="true" DebounceMilliseconds="150" ShowPaging="true"
+          LoadInitialData="true" RequestApiOnlyOnce="true" ApiUrl="api/templates" AllowSelection="true" SelectionChanged="SelectionChangedEvent"
+          UseSortHeaderRow="true" FilterByColumnName="FullName" SearchTermFieldLabel="Filter by Name" SearchTermFieldPlaceHolder="Employee" PageSize="@PageSize">
+    <MatTableHeader>
+        <MatSortHeaderRow SortChanged="@SortTemplatesData">
+            <AuthorizedAsAdmin>
+                <MatSortHeader>
+                    <MatButton Icon="@MatIconNames.Add" Label="New"
+                               Link="@NavigationManager.ToAbsoluteUri($"/templates/{0}?returnUrl={NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}").AbsoluteUri"></MatButton>
+                </MatSortHeader>
+            </AuthorizedAsAdmin>
+            <MatSortHeader SortId="title">Title</MatSortHeader>
+            <MatSortHeader SortId="creator">Creator</MatSortHeader>
+            <MatSortHeader SortId="question-count">Count of Questions</MatSortHeader>
+            <MatSortHeader SortId="inUse">In Use</MatSortHeader>
+        </MatSortHeaderRow>
+    </MatTableHeader>
+    <MatTableRow Context="TemplateRow">
+        <AuthorizedAsAdmin>
+            <td>
+                @if (!TemplateRow.InUse)
+                {
+                    <div style="width: auto">
+
+                        <TableRowEditButton Link="@NavigationManager.ToAbsoluteUri($"/templates/{TemplateRow.Id}?&returnUrl={NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}").AbsoluteUri"></TableRowEditButton>
+                        <MatTooltip Tooltip="Delete" Wrap="true">
+                            <MatIconButton Icon="@MatIconNames.Delete" OnClick="@(()=>OpenDeleteDialog(TemplateRow.Title))"></MatIconButton>
+                        </MatTooltip>
+                    </div>
+                }
+            </td>
+        </AuthorizedAsAdmin>
+        <td>@TemplateRow.Title</td>
+        <td>
+            <EmployeeTag EmployeeId="@TemplateRow.CreatedByUserId" EmployeeFullName="@TemplateRow.CreatorName"></EmployeeTag>
+        </td>
+        <td>@TemplateRow.Questions.Count</td>
+        <td>
+            @if (TemplateRow.InUse)
+            {
+                <MatIcon Icon="@MatIconNames.Done_outline"></MatIcon>
+            }
+        </td>
+    </MatTableRow>
+</MatTable>
+
+<AuthorizedAsAdmin>
+    <MatDialog @bind-IsOpen="@_isDeleteDialogOpen" Style="z-index:100">
+        <MatDialogTitle><MatIcon Icon="warning"></MatIcon> Confirm Delete</MatDialogTitle>
+        <MatDialogContent>
+            Are you sure you want to delete the template "@_currentTemplateTitle"?
+        </MatDialogContent>
+        <MatDialogActions>
+            <MatButton OnClick="@(e => { _isDeleteDialogOpen = false;})">Cancel</MatButton>
+            <MatButton OnClick="@DeleteTemplate">Delete</MatButton>
+        </MatDialogActions>
+    </MatDialog>
+</AuthorizedAsAdmin>

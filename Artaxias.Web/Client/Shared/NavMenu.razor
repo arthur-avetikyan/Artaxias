@@ -1,0 +1,104 @@
+﻿@using Microsoft.AspNetCore.Components;
+@using Artaxias.Web.Client.Pages.UserManagement
+@using Artaxias.Web.Client.Pages.Organization
+@using Artaxias.Web.Client.Pages.Organization.Calendar
+@using Artaxias.Web.Client.Pages.Feadback
+
+@inject NavigationManager navigationManager
+
+@attribute [Authorize]
+
+<MatNavMenu Multi="true" Class="app-sidebar">
+    <MatNavItem Href="@navigationManager.ToAbsoluteUri(" ").AbsoluteUri" NavLinkMatch="NavLinkMatch.All">
+        <MatIcon>home</MatIcon> <span class="miniHover">Home page</span>
+    </MatNavItem>
+
+    <AuthorizedAsAdmin>
+        <MatNavSubMenu>
+            <MatNavSubMenuHeader>
+                <MatNavItem AllowSelection="false">
+                    <MatIcon Icon="@MatIconNames.People"></MatIcon> <span class="miniHover">User Management</span>
+                </MatNavItem>
+            </MatNavSubMenuHeader>
+            <MatNavSubMenuList>
+                <MatNavItem Href="@nameof(Users)">
+                    <MatIcon Icon="@MatIconNames.People_outline"></MatIcon> <span class="miniHover">Users</span>
+                </MatNavItem>
+                <MatNavItem Href="@nameof(Roles)">
+                    <MatIcon Icon="@MatIconNames.Directions_walk"></MatIcon> <span class="miniHover">Roles</span>
+                </MatNavItem>
+            </MatNavSubMenuList>
+        </MatNavSubMenu>
+    </AuthorizedAsAdmin>
+    <AuthorizeView Context="AuthorizeContext">
+        <Authorized>
+            <MatNavSubMenu>
+                <MatNavSubMenuHeader>
+                    <MatNavItem AllowSelection="false">
+                        <MatIcon Icon="@MatIconNames.Business"></MatIcon> <span class="miniHover">Organization</span>
+                    </MatNavItem>
+                </MatNavSubMenuHeader>
+                <MatNavSubMenuList>
+                    <MatNavItem Href="@nameof(Departments)">
+                        <MatIcon Icon="@MatIconNames.Account_balance"></MatIcon> <span class="miniHover">Departments</span>
+                    </MatNavItem>
+                    <MatNavItem Href="@nameof(Employees)">
+                        <MatIcon Icon="@MatIconNames.Contacts"></MatIcon> <span class="miniHover">Employees</span>
+                    </MatNavItem>
+                    <MatNavItem Href="@nameof(Calendar)">
+                        <MatIcon Icon="@MatIconNames.Calendar_today"></MatIcon> <span class="miniHover">Calendar</span>
+                    </MatNavItem>
+                    <MatNavItem Href="@nameof(Contracts)">
+                        <MatIcon Icon="@MatIconNames.Image_search"></MatIcon> <span class="miniHover">Contract Templates</span>
+                    </MatNavItem>
+                </MatNavSubMenuList>
+            </MatNavSubMenu>
+        </Authorized>
+    </AuthorizeView>
+    <AuthorizeView Context="AuthorizeContext">
+        <Authorized>
+            <MatNavSubMenu>
+                <MatNavSubMenuHeader>
+                    <MatNavItem AllowSelection="false">
+                        <MatIcon Icon="@MatIconNames.Library_books"></MatIcon> <span class="miniHover">Feadback</span>
+                    </MatNavItem>
+                </MatNavSubMenuHeader>
+                <MatNavSubMenuList>
+                    <MatNavItem Href="@nameof(Templates)">
+                        <MatIcon Icon="@MatIconNames.List_alt"></MatIcon> <span class="miniHover">Templates</span>
+                    </MatNavItem>
+                    <MatNavItem Href="@nameof(Reviews)">
+                        <MatIcon Icon="@MatIconNames.Rate_review"></MatIcon> <span class="miniHover">Reviews</span>
+                    </MatNavItem>
+                    <MatNavItem Href="@nameof(Feedbacks)">
+                        <MatIcon Icon="@MatIconNames.Question_answer"></MatIcon> <span class="miniHover">Feedbacks</span>
+                    </MatNavItem>
+                </MatNavSubMenuList>
+            </MatNavSubMenu>
+        </Authorized>
+    </AuthorizeView>
+</MatNavMenu>
+
+@code {
+    public bool IsLoggedIn = false;
+
+    [CascadingParameter]
+    Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        IsLoggedIn = false;
+        var user = (await authenticationStateTask).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            IsLoggedIn = true;
+        }
+
+        //if (user.IsInRole("Administrator"))
+        //{
+        //    //Perform some action only available to users in the 'admin' role
+        //    Console.WriteLine("Administrator");
+        //}
+    }
+}

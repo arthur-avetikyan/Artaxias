@@ -1,0 +1,109 @@
+﻿@page "/bonuses/{BonusId:int}"
+
+@attribute [Authorize]
+
+@if (_bonus == null)
+{
+    <BackButton ReturnUrl="@_returnUrl"></BackButton>
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <EditForm Model="@Request" OnValidSubmit="UpdateAsync">
+
+        <ProfileTopBar ReturnUrl="@_returnUrl" StateId="@_bonus.DomainStateId">
+            @if (!(_bonus.DomainStateId == (int)EDomainState.Approved ||
+               _bonus.DomainStateId == (int)EDomainState.Completed ||
+               _bonus.DomainStateId == (int)EDomainState.Abandoned))
+            {
+                <AuthorizedAsAdmin>
+                    @if (!_isEditEnabled)
+                    {
+                        <MatButton Icon="edit" Label="Edit" OnClick="@EnableEdit"></MatButton>
+                    }
+                    @if (_isEditEnabled)
+                    {
+                        <MatButton Type="button" OnClick="DisableEdit">Cancel</MatButton>
+                        <MatButton Type="submit" Raised="true">Update</MatButton>
+                    }
+                </AuthorizedAsAdmin>
+            }
+        </ProfileTopBar>
+
+        <fieldset>
+            <div class="form-group">
+                <MatNumericUpDownField Label="Amount" @bind-Value=@Request.Amount FieldType="MatNumericUpDownFieldType.Currency" Disabled="!_isEditEnabled" ReadOnly="!_isEditEnabled"
+                                       DecimalPlaces=2 Minimum="0" Step="10000" HideClearButton="false" Required="true" FullWidth="true"></MatNumericUpDownField>
+            </div>
+            <div class="form-group">
+                <MatDatePicker @bind-Value="@Request.PaymentDate" Label="Payment Date" HideClearButton="false" Required="false" Outlined="true" ReadOnly="!_isEditEnabled"
+                               Format="yyyy MMMM dd" Box="true" Dense="true" AllowInput="true" Minimum="@DateTime.UtcNow" Maximum="@DateTime.UtcNow.AddYears(1)">
+                </MatDatePicker>
+            </div>
+            <div class="form-group">
+                <MatSelect @bind-Value="@Request.ApproverId" Label="Approver" HelperText="Pick Approver" FullWidth="true" Outlined="true">
+                    @{
+                            if (Request.ApproverId > 0)
+                            {
+                            <MatOption TValue="int" Disabled="!_isEditEnabled" Value="@Request.ApproverId">
+                                @(_employees.FirstOrDefault(t => t.Id == Request.ApproverId)?.FullName)
+                            </MatOption>
+                            }
+                            foreach (var item in _employees)
+                            {
+                                if (item.Id != Request.ApproverId)
+                                {
+                                <MatOption TValue="int" Disabled="!_isEditEnabled" Value="@item.Id">@item.FullName</MatOption>
+                                }
+                            }
+                    }
+                </MatSelect>
+            </div>
+            <div class="form-group">
+                <MatTextField Label="Comment" @bind-Value=@Request.Comment FullWidth="true" Disabled="!_isEditEnabled" ReadOnly="!_isEditEnabled"></MatTextField>
+            </div>
+        </fieldset>
+    </EditForm>
+
+    <AuthorizeView Context="AuthorizeContext">
+        @if (AuthorizeContext.User.Identity.Name.Equals(_employees.FirstOrDefault(t => t.Id == _bonus.Approver.Id).UserName)
+    && _bonus.DomainStateId == (int)EDomainState.Requested)
+        {
+            <div class="d-flex">
+                <div class="ml-auto p-2">
+                    <MatThemeProvider Theme="@_redTheme">
+                        <MatButton Icon="@MatIconNames.Cancel" Label="Reject" OnClick="@RejectAsync" Unelevated="true"></MatButton>
+                    </MatThemeProvider>
+                </div>
+                <div class="p-2">
+                    <MatThemeProvider Theme="@_greenTheme">
+                        <MatButton Icon="@MatIconNames.Check_box" Label="Approve" OnClick="@ApproveAsync" Unelevated="true"></MatButton>
+                    </MatThemeProvider>
+                </div>
+            </div>
+        }
+    </AuthorizeView>
+
+    <AuthorizedAsAdmin>
+        <MatAccordion>
+            <MatExpansionPanel @bind-Expanded="@_deleteAbsenceExpansionOpen">
+                <MatExpansionPanelSummary>
+                    <MatExpansionPanelHeader>
+                        Delete
+                    </MatExpansionPanelHeader>
+                </MatExpansionPanelSummary>
+                <MatExpansionPanelDetails>
+                    <p>
+                        Are you sure you want to delete the bonus?
+                    </p>
+                    <MatButton OnClick="@(e => { _deleteAbsenceExpansionOpen = false; })">Cancel</MatButton>
+                    <MatThemeProvider Theme="@_redTheme">
+                        <MatButton Icon="@MatIconNames.Delete" Label="Delete" OnClick="@DeleteAsync" Unelevated="true"></MatButton>
+                    </MatThemeProvider>
+                </MatExpansionPanelDetails>
+            </MatExpansionPanel>
+        </MatAccordion>
+    </AuthorizedAsAdmin>
+}

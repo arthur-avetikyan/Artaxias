@@ -1,0 +1,27 @@
+﻿@attribute [Authorize]
+
+@if (_feedbacks == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <MatTable Class="mat-elevation-z5" Items="@_feedbacks" Striped="true" UseSortHeaderRow="true" ShowPaging="true" PageSize="5"
+              LoadInitialData="true" RequestApiOnlyOnce="true" ApiUrl="@($"api/reviews/about/{EmployeeId}")"
+              AllowSelection="true" SelectionChanged="SelectionChangedEvent">
+        <MatTableHeader>
+            <MatSortHeaderRow SortChanged="SortFeedbackData">
+                <MatSortHeader SortId="reviewId"><span style="width:150px">Review Id</span></MatSortHeader>
+                <MatSortHeader SortId="title"><span style="width:150px">Review Title</span></MatSortHeader>
+                <MatSortHeader SortId="date">Provided Date</MatSortHeader>
+            </MatSortHeaderRow>
+        </MatTableHeader>
+        <MatTableRow Context="FeedbackRow">
+            <td>@FeedbackRow.ReviewId</td>
+            <td>@FeedbackRow.ReviewTitle</td>
+            <td>@FeedbackRow.ProvidedDate.ToString("MMMM dd, yyyy")</td>
+        </MatTableRow>
+    </MatTable>
+}

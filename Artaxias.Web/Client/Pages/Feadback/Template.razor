@@ -1,0 +1,149 @@
+﻿@page "/templates/{TemplateId:int}"
+@attribute [Authorize]
+
+@if (TemplateRequest == null || _feadbackTemplate == null || _departments == null)
+{
+    <BackButton ReturnUrl="@_returnUrl"></BackButton>
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <ProfileTopBar ReturnUrl="@_returnUrl" IsAlignedLeft="true">
+        @{
+            if (!_isEditDisabled)
+            {
+                <MatH6>@_actionLabel @TemplateRequest.Title</MatH6>
+            }
+            else
+            {
+                <MatH6>@TemplateRequest.Title</MatH6>
+            }
+        }
+    </ProfileTopBar>
+
+    <MatAccordion LazyRendering="true">
+        <EditForm Model="@TemplateRequest" OnValidSubmit="@SaveTemplate">
+            <Microsoft.AspNetCore.Components.Forms.ObjectGraphDataAnnotationsValidator />
+            <ValidationSummary />
+
+            <AuthorizedAsAdmin>
+                @if (!_feadbackTemplate.InUse)
+                {
+                    <div class="form-group d-flex justify-content-end">
+                        @if (_isEditDisabled)
+                        {
+                            <MatButton Type="button" Label="Edit" Icon="@MatIconNames.Edit" OnClick="@(() => { _isEditDisabled = !_isEditDisabled; })"></MatButton>
+                        }
+                        else
+                        {
+                            <MatButton Type="reset" Label="Cancel" OnClick="@(() => { _isEditDisabled = !_isEditDisabled; })"></MatButton>
+                            <MatButton Type="submit" Raised="true" Label="Save"></MatButton>
+                        }
+                    </div>
+                }
+            </AuthorizedAsAdmin>
+
+            <MatExpansionPanel @bind-Expanded="@_panelOpenState">
+                <MatExpansionPanelSummary>
+                    <MatExpansionPanelHeader>Template Details</MatExpansionPanelHeader>
+                    <MatExpansionPanelSubHeader>
+                        @if (_feadbackTemplate.InUse)
+                        {
+                            <MatChip Style="background-color:salmon" TrailingIcon="@MatIconNames.Done_outline" Label="In Use"></MatChip>
+                        }
+                    </MatExpansionPanelSubHeader>
+                </MatExpansionPanelSummary>
+                <MatExpansionPanelDetails Class="mat-drawer-container-responsive">
+                    <div class="form-group" Style="width:100%">
+                        <MatTextField @bind-Value="@TemplateRequest.Title" Label="Title" Required="true" FullWidth="true" ReadOnly="@_isEditDisabled"></MatTextField>
+                    </div>
+                </MatExpansionPanelDetails>
+            </MatExpansionPanel>
+            @for (int i = 0; i < TemplateRequest.Questions.Count; i++)
+            {
+                int questionIndex = i;
+                var currentQuestion = TemplateRequest.Questions[questionIndex];
+                <MatExpansionPanel>
+                    <MatExpansionPanelSummary>
+                        <MatExpansionPanelHeader>Question Details</MatExpansionPanelHeader>
+                        <AuthorizedAsAdmin>
+                            @if (TemplateRequest.Questions.Count > 1 && !_isEditDisabled)
+                            {
+                                <MatExpansionPanelSubHeader>
+                                    <MatButton Type="button" TrailingIcon="@MatIconNames.Clear" Disabled="@_isEditDisabled" OnClick="@(()=>RemoveQuestion(questionIndex))"></MatButton>
+                                </MatExpansionPanelSubHeader>
+                            }
+                        </AuthorizedAsAdmin>
+                    </MatExpansionPanelSummary>
+                    <MatExpansionPanelDetails Class="mat-drawer-container-responsive">
+                        <fieldset>
+                            <MatSubtitle1>Question</MatSubtitle1>
+                            <fieldset>
+                                <div class="form-group" Style="width:100%">
+                                    <MatTextField @bind-Value="@currentQuestion.Title" Label="Title" HelperText="Main question" Required="true" FullWidth="true" ReadOnly="@_isEditDisabled"></MatTextField>
+                                </div>
+                                <div class="form-group" Style="width:100%">
+                                    <MatTextField @bind-Value="@currentQuestion.Description" Label="Description" HelperText="Additional comments" FullWidth="true" ReadOnly="@_isEditDisabled"></MatTextField>
+                                </div>
+                            </fieldset>
+                            <MatSubtitle1>Answer</MatSubtitle1>
+                            <fieldset>
+                                <div class="form-group" Style="width:100%">
+                                    @{int optionTypeId = currentQuestion.Answer.OptionType.Id;
+                                        <MatRadioGroup ValueExpression="@(() => optionTypeId)" TValue="int" Value="optionTypeId"
+                                                       ValueChanged="@((optionTypeId) => SetInistialOptionCount(optionTypeId, currentQuestion))">
+                                            @foreach (var answerOptionType in _answerOptionTypes)
+                                            {
+                                                <MatRadioButton Disabled="@_isEditDisabled" TValue="int" Value="@answerOptionType.Id" Label="@answerOptionType.Description"></MatRadioButton>
+                                            }
+                                        </MatRadioGroup>
+                                    }
+                                </div>
+                                @if (currentQuestion.Answer.OptionType.Description != Core.Constants.Domain.AnswerOptionTypes.OpenText)
+                                {
+                                    for (int y = 0; y < currentQuestion.Answer.Values.Count; y++)
+                                    {
+                                        int optionIndex = y;
+                                        string currentAnserValue = currentQuestion.Answer.Values[optionIndex].Value;
+                                        <div class="form-group" Style="width:100%">
+                                            <MatTextField TValue="string" Value="@currentAnserValue"
+                                                          ValueExpression="@(()=>currentAnserValue)"
+                                                          ValueChanged="@((e)=>ChangeAnswerValue(optionIndex, e, currentQuestion))" Label="Option" Required="true"
+                                                          HelperText="There must be at least two Options" FullWidth="true" ReadOnly="@_isEditDisabled">
+                                                <AuthorizedAsAdmin>
+                                                    @if (!_isEditDisabled)
+                                                    {
+                                                        @if (currentQuestion.Answer.Values.Count > 2)
+                                                        {
+                                                            <MatButton Type="button" Disabled="@_isEditDisabled" Icon="@MatIconNames.Clear" OnClick="@(()=>RemoveOption(optionIndex, currentQuestion))"></MatButton>
+                                                        }
+                                                    }
+                                                </AuthorizedAsAdmin>
+                                            </MatTextField>
+                                        </div>
+                                    }
+                                    <AuthorizedAsAdmin>
+                                        @if (!_isEditDisabled)
+                                        {
+                                            <MatButton Type="button" Icon="@MatIconNames.Add" Disabled="@_isEditDisabled" Label="Add Option" OnClick="@(()=>AddOption(currentQuestion))"></MatButton>
+                                        }
+                                    </AuthorizedAsAdmin>
+                                }
+                            </fieldset>
+                        </fieldset>
+                    </MatExpansionPanelDetails>
+                </MatExpansionPanel>
+            }
+            <AuthorizedAsAdmin>
+                @if (!_isEditDisabled)
+                {
+                    <div class="form-group d-flex justify-content-start">
+                        <MatButton Type="button" Icon="@MatIconNames.Add" Label="Add Question" OnClick="@(()=>AddQuestion())"></MatButton>
+                    </div>
+                }
+            </AuthorizedAsAdmin>
+        </EditForm>
+    </MatAccordion>
+}

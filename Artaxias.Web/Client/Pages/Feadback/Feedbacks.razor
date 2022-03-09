@@ -1,0 +1,40 @@
+﻿@page "/feedbacks"
+
+@attribute [Authorize]
+
+@using Artaxias.Web.Client.Pages.Organization.Employee
+
+@if (_feedbacks == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <MatTable Class="mat-elevation-z5" Items="@_feedbacks" Striped="true" UseSortHeaderRow="true" ShowPaging="true"
+              LoadInitialData="true" RequestApiOnlyOnce="true" ApiUrl="api/feedbacks" PageSize="@PageSize"
+              AllowSelection="true" SelectionChanged="SelectionChangedEvent"
+              SearchTermFieldLabel="Filter by Name" SearchTermFieldPlaceHolder="Reviewee" FilterByColumnName="RevieweeName">
+        <MatTableHeader>
+            <MatSortHeaderRow SortChanged="SortFeedbackData">
+                <MatSortHeader SortId="title"><span style="width:150px">Review</span></MatSortHeader>
+                <MatSortHeader SortId="reviewer"><span style="width:150px">Reviewer</span></MatSortHeader>
+                <MatSortHeader SortId="reviewee"><span style="width:150px">Reviewee</span></MatSortHeader>
+                <MatSortHeader SortId="date">Provided Date</MatSortHeader>
+            </MatSortHeaderRow>
+        </MatTableHeader>
+        <MatTableRow Context="FeedbackRow">
+            <td>@FeedbackRow.ReviewTitle</td>
+            <AuthorizedAsAdmin>
+                <td>
+                    <EmployeeTag EmployeeId="@FeedbackRow.Reviewer.Id" EmployeeFullName="@FeedbackRow.Reviewer.FullName"></EmployeeTag>
+                </td>
+            </AuthorizedAsAdmin>
+            <td>
+                <EmployeeTag EmployeeId="@FeedbackRow.Reviewee.Id" EmployeeFullName="@FeedbackRow.Reviewee.FullName"></EmployeeTag>
+            </td>
+            <td>@FeedbackRow.ProvidedDate.ToString("MMMM dd, yyyy")</td>
+        </MatTableRow>
+    </MatTable>
+}

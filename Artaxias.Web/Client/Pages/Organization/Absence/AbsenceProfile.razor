@@ -1,0 +1,132 @@
+﻿@page "/absences/{AbsenceId:int}"
+
+@if (_absenceResponse == null)
+{
+    <BackButton ReturnUrl="@_returnUrl"></BackButton>
+    <LoadingBackground ShowLogoBox="true"></LoadingBackground>
+}
+else
+{
+    <EditForm Model="@_absenceRequest" OnValidSubmit="UpdateAsync">
+
+        <ProfileTopBar ReturnUrl="@_returnUrl" StateId="@_absenceResponse.StateId">
+            <AuthorizedAsAdminOrSelf EmployeeId="@_absenceResponse.Receiver.Id">
+                @if (!_isEditEnabled)
+                {
+                    <MatButton Icon="edit" Label="Edit" OnClick="@EnableEdit"></MatButton>
+                }
+                @if (_isEditEnabled)
+                {
+                    <MatButton Type="button" OnClick="DisableEdit">Cancel</MatButton>
+                    <MatButton Type="submit" Raised="true">Update</MatButton>
+                }
+            </AuthorizedAsAdminOrSelf>
+        </ProfileTopBar>
+
+        <fieldset>
+            <div class="form-group">
+                <MatSelect @bind-Value="@_absenceRequest.ReceiverId" Label="Employee" HelperText="Pick Employee" Outlined="true" Disabled="true" FullWidth="true">
+                    @{
+                            if (_absenceRequest.ReceiverId > 0)
+                            {
+                            <MatOption TValue="int" Value="@_absenceRequest.ReceiverId">
+                                @(_employees.FirstOrDefault(t => t.Id == _absenceRequest.ReceiverId)?.FullName)
+                            </MatOption>
+                            }
+                    }
+                </MatSelect>
+            </div>
+            <div class="form-group">
+                <MatSelect @bind-Value="@_absenceRequest.ApproverId" Label="Approver" HelperText="Pick Approver" FullWidth="true" Outlined="true">
+                    @{
+                            if (_absenceRequest.ApproverId > 0)
+                            {
+                            <MatOption TValue="int" Disabled="!_isEditEnabled" Value="@_absenceRequest.ApproverId">
+                                @(_employees.FirstOrDefault(t => t.Id == _absenceRequest.ApproverId)?.FullName)
+                            </MatOption>
+                            }
+                            foreach (var item in _employees)
+                            {
+                                if (item.Id != _absenceRequest.ApproverId)
+                                {
+                                <MatOption TValue="int" Disabled="!_isEditEnabled" Value="@item.Id">@item.FullName</MatOption>
+                                }
+                            }
+                    }
+                </MatSelect>
+            </div>
+            <div class="form-group">
+                <MatSelect @bind-Value="@_absenceRequest.TypeId" Label="Type" HelperText="Pick Type" Outlined="true" FullWidth="true">
+                    @{
+                            if (_absenceRequest.TypeId > 0)
+                            {
+                            <MatOption TValue="int" Disabled="!_isEditEnabled" Value="@_absenceRequest.TypeId">
+                                @(_absenceTypes.FirstOrDefault(t => t.Id == _absenceRequest.TypeId)?.Description)
+                            </MatOption>
+                            }
+                            foreach (var item in _absenceTypes)
+                            {
+                                if (item.Id != _absenceRequest.TypeId)
+                                {
+                                <MatOption TValue="int" Disabled="!_isEditEnabled" Value="@item.Id">@item.Description</MatOption>
+                                }
+                            }
+                    }
+                </MatSelect>
+            </div>
+            <div class="form-group">
+                <MatTextField @bind-Value="@_absenceRequest.Reason" Label="Reason" Icon="assignment_late" IconTrailing="true" Required="true" ReadOnly="!_isEditEnabled" FullWidth="true"></MatTextField>
+            </div>
+            <div class="form-group">
+                <MatDatePicker @bind-Value="@_absenceRequest.StartDate" Label="Start Date" HideClearButton="false" Required="false"
+                               Outlined="true" ReadOnly="!_isEditEnabled" Box="true" Dense="true" AllowInput="true"
+                               Format="yyyy MMMM dd" Minimum="@DateTime.UtcNow" Maximum="@DateTime.UtcNow.AddYears(1)">
+                </MatDatePicker>
+                <MatDatePicker @bind-Value="@_absenceRequest.EndDate" Label="End Date" HideClearButton="false" Required="false"
+                               Outlined="true" ReadOnly="!_isEditEnabled" Box="true" Dense="true" AllowInput="true"
+                               Format="yyyy MMMM dd" Minimum="_absenceRequest.StartDate.AddDays(1)" Maximum="@DateTime.UtcNow.AddYears(1)">
+                </MatDatePicker>
+            </div>
+            <div class="form-group">
+
+            </div>
+        </fieldset>
+    </EditForm>
+
+    <AuthorizeView Context="AuthorizeContext">
+        @if (AuthorizeContext.User.Identity.Name.Equals(_absenceApproverEmployee.UserName) && _absenceResponse.StateId == (int)EDomainState.Pending)
+        {
+            <div class="d-flex">
+                <div class="ml-auto p-2">
+                    <MatThemeProvider Theme="@_redTheme">
+                        <MatButton Icon="@MatIconNames.Cancel" Label="Reject" OnClick="@RejectAsync" Unelevated="true"></MatButton>
+                    </MatThemeProvider>
+                </div>
+                <div class="p-2">
+                    <MatThemeProvider Theme="@_greenTheme">
+                        <MatButton Icon="@MatIconNames.Check_box" Label="Approve" OnClick="@ApproveAsync" Unelevated="true"></MatButton>
+                    </MatThemeProvider>
+                </div>
+            </div>
+        }
+    </AuthorizeView>
+
+    <MatAccordion>
+        <MatExpansionPanel @bind-Expanded="@_deleteAbsenceExpansionOpen">
+            <MatExpansionPanelSummary>
+                <MatExpansionPanelHeader>
+                    Delete
+                </MatExpansionPanelHeader>
+            </MatExpansionPanelSummary>
+            <MatExpansionPanelDetails>
+                <p>
+                    Are you sure you want to delete an Absence "@_absenceResponse.Reason"?
+                </p>
+                <MatButton OnClick="@(e => { _deleteAbsenceExpansionOpen = false; })">Cancel</MatButton>
+                <MatThemeProvider Theme="@_redTheme">
+                    <MatButton Icon="@MatIconNames.Delete" Label="Delete" OnClick="@DeleteAsync" Unelevated="true"></MatButton>
+                </MatThemeProvider>
+            </MatExpansionPanelDetails>
+        </MatExpansionPanel>
+    </MatAccordion>
+}

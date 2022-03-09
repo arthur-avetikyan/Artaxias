@@ -1,0 +1,127 @@
+﻿@page "/employees"
+
+@attribute [Authorize]
+
+<MatH4>Employees</MatH4>
+
+@if (_employees == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <MatTable Class="mat-elevation-z5" Items="@_employees" Striped="true" DebounceMilliseconds="150" ShowPaging="true"
+              UseSortHeaderRow="true" FilterByColumnName="FullName" SearchTermFieldLabel="Filter by Name" SearchTermFieldPlaceHolder="Employee" PageSize="@PageSize"
+              AllowSelection="true" SelectionChanged="SelectionChangedEvent">
+        <MatTableHeader>
+            <MatSortHeaderRow SortChanged="@SortEmployeesData">
+                <MatSortHeader>
+                    <AuthorizedAsAdmin>
+                        <MatTooltip Tooltip="Add New Employee" Wrap="true">
+                            <MatButton Type="button" Icon="@MatIconNames.Add" Label="New"
+                                       OnClick="@(() => {_isAddEmployeeDialogOpen = true; })"></MatButton>
+                        </MatTooltip>
+                    </AuthorizedAsAdmin>
+                </MatSortHeader>
+                <MatSortHeader SortId="name">Name</MatSortHeader>
+                <MatSortHeader SortId="position">Position</MatSortHeader>
+                <MatSortHeader SortId="assignment-date">Contact Start Date</MatSortHeader>
+                <MatSortHeader SortId="resignment-date">Contact End Date</MatSortHeader>
+                <MatSortHeader SortId="department">Department</MatSortHeader>
+            </MatSortHeaderRow>
+        </MatTableHeader>
+        <MatTableRow Context="EmployeeRow">
+            <td>
+                <div style="width: auto">
+                    <AuthorizedAsAdminOrSelf UserName="@EmployeeRow.UserName">
+                        <TableRowEditButton Link="@NavigationManager.ToAbsoluteUri($"/employees/{EmployeeRow.Id}?isEditDisabled={false}&returnUrl={NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}").AbsoluteUri"></TableRowEditButton>
+                    </AuthorizedAsAdminOrSelf>
+                    <AuthorizedAsAdmin>
+                        <TableRowDeleteButton Link="@NavigationManager.ToAbsoluteUri($"/employees/{EmployeeRow.Id}?isEditDisabled={true}&returnUrl={NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}&endContract={true}").AbsoluteUri"></TableRowDeleteButton>
+                    </AuthorizedAsAdmin>
+                </div>
+            </td>
+            <td>@EmployeeRow.FullName</td>
+            <td>@EmployeeRow.Position</td>
+            <td>@EmployeeRow.ContractStart.ToString("MMMM dd, yyyy")</td>
+            <td>@(EmployeeRow.ContractEnd.HasValue? EmployeeRow.ContractEnd.GetValueOrDefault().ToString("MMMM dd, yyyy") : null)</td>
+            <td>
+                <MatChipSet>
+                    @{
+                            int currentCount = 0;
+                            foreach (var item in EmployeeRow.Departments)
+                            {
+                                if (!EmployeeRow.DisplayMore)
+                                {
+                                    if (currentCount <= 3)
+                                    {
+                                    <MatChip Label="@item.DepartmentName"></MatChip>
+                                    }
+                                }
+                                else
+                                {
+                                <MatChip Label="@item.DepartmentName"></MatChip>
+                                }
+                                currentCount++;
+                            }
+                            if (EmployeeRow.Departments.Count > 4)
+                            {
+                            <MatChip LeadingIcon="@(EmployeeRow.DisplayMore ? MatIconNames.Visibility : MatIconNames.Visibility_off)"
+                                     @onclick="@(()=>ShowMore(EmployeeRow.Id))"></MatChip>
+                            }
+                    }
+                </MatChipSet>
+            </td>
+        </MatTableRow>
+    </MatTable>
+}
+
+<AuthorizedAsAdmin>
+    <MatDialog @bind-IsOpen="@_isAddEmployeeDialogOpen">
+        <MatDialogTitle>Create Employee</MatDialogTitle>
+        <EditForm Model="@EmployeeRequest" OnValidSubmit="CreateEmployee">
+            <MatDialogContent>
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <fieldset>
+                    <div class="form-group">
+                        <MatSelect @bind-Value="@EmployeeRequest.Id" Label="User" HelperText="Pick User">
+                            <MatOption Value="0">Not Selected</MatOption>
+                            @foreach (var item in _unemployeedUsers)
+                            {
+                                <MatOption Value="item.Id">@($"{item.FirstName} {item.LastName}")</MatOption>
+                            }
+                        </MatSelect>
+                    </div>
+                    <div class="form-group">
+                        <MatDatePicker @bind-Value="@EmployeeRequest.ContractStart" Label="Contract Start Date" Style="width: 200px" HideClearButton="false"
+                                       Required="true" Outlined="true" Box="true" Dense="true" AllowInput="true"
+                                       Format="MMMM dd, yyyy" Minimum="@DateTime.UtcNow.AddYears(-30)" Maximum="@DateTime.UtcNow.AddYears(30)">
+                        </MatDatePicker>
+                    </div>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@EmployeeRequest.Position" Label="Position" Required="true"></MatTextField>
+                    </div>
+                    @foreach (var selection in _departmentSelection)
+                    {
+                        <div class="form-group">
+
+                            <MatCheckbox TValue="bool"
+                                         Value="@selection.IsSelected"
+                                         ValueExpression="@(() => selection.IsSelected)"
+                                         ValueChanged="@(() => SelectCheckBoxMultipleAnswer(selection))"
+                                         Label="@selection.Name">
+                            </MatCheckbox>
+                        </div>
+                    }
+                </fieldset>
+            </MatDialogContent>
+            <MatDialogActions>
+                <MatButton Type="reset" OnClick="@(e => { _isAddEmployeeDialogOpen = false; })">Cancel</MatButton>
+                <MatButton Type="submit">Save</MatButton>
+            </MatDialogActions>
+        </EditForm>
+    </MatDialog>
+</AuthorizedAsAdmin>

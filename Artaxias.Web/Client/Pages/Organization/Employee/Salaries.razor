@@ -1,0 +1,76 @@
+﻿@attribute [Authorize]
+
+@if (_salaries == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    @if (!IsContractEnded)
+    {
+        <AuthorizedAsAdmin>
+            <MatTooltip Class="mat-elevation-z5" Wrap="true" Tooltip="New Salary">
+                <MatButton Icon="@MatIconNames.Attach_money" OnClick="@(() => OpenCreateDialog())">New Salary</MatButton>
+            </MatTooltip>
+        </AuthorizedAsAdmin>
+    }
+    <AuthorizedAsAdminOrSelf EmployeeId="@EmployeeId">
+        <MatTable Class="mat-elevation-z5" Items="@_salaries" Striped="true" UseSortHeaderRow="true" ShowPaging="true" PageSize="5"
+                  LoadInitialData="true" RequestApiOnlyOnce="true" ApiUrl="@($"api/salaries/{EmployeeId}")">
+            <MatTableHeader>
+                <MatSortHeaderRow SortChanged="SortSalaryData">
+                    <MatSortHeader SortId="net"><span style="width: 200px">Net Salary</span></MatSortHeader>
+                    <MatSortHeader SortId="gross"><span style="width: 200px">Gross Salary</span></MatSortHeader>
+                    <MatSortHeader SortId="date"><span style="width: 200px">Assignment Date</span></MatSortHeader>
+                </MatSortHeaderRow>
+            </MatTableHeader>
+            <MatTableRow Context="SalaryRow">
+                <td>@SalaryRow.NetAmount.ToString("C", System.Globalization.CultureInfo.CreateSpecificCulture("hy-AM"))</td>
+                <td>@SalaryRow.GrossAmount.ToString("C", System.Globalization.CultureInfo.CreateSpecificCulture("hy-AM"))</td>
+                <td>
+                    @SalaryRow.AssignmentDate.ToString("MMMM dd, yyyy")
+                    @if (SalaryRow.AssignmentDate > DateTime.UtcNow)
+                        {
+                        <MatChip Label="Planned"></MatChip>
+                        }
+                    @if (SalaryRow.Id == _currentSalary.Id)
+                        {
+                            if (IsContractEnded)
+                            {
+                            <MatChip Label="Last"></MatChip>
+                            }
+                            else
+                            {
+                            <MatChip Label="Current"></MatChip>
+                            }
+                        }
+                </td>
+            </MatTableRow>
+        </MatTable>
+    </AuthorizedAsAdminOrSelf>
+
+    @if (!IsContractEnded)
+    {
+        <AuthorizedAsAdmin>
+            <MatDialog @bind-IsOpen="@_isCreateDialogOpen">
+                <MatDialogTitle>Change Salary</MatDialogTitle>
+                <MatDialogContent>
+                    <EditForm Model="@SalaryRequest" OnValidSubmit="@ChangeSalaryAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <MatNumericUpDownField Style="width:100%" Label="NET Salary" @bind-Value=@SalaryRequest.NetSalary FieldType="MatNumericUpDownFieldType.Currency"
+                                               DecimalPlaces=2 Minimum="0" Step="10000" HideClearButton="false" Required="true"></MatNumericUpDownField>
+                        <MatNumericUpDownField Style="width:100%" Label="Gross Salary" @bind-Value=@SalaryRequest.GrossSalary FieldType="MatNumericUpDownFieldType.Currency"
+                                               DecimalPlaces=2 Minimum="0" Step="10000" HideClearButton="false" Required="true"></MatNumericUpDownField>
+                        <MatDatePicker Style="width:100%" @bind-Value="@SalaryRequest.AssignmentDate" Label="Assignment Date" HideClearButton="false"
+                                       Format="MMMM dd, yyyy" Required="true" Minimum="@ContractStartedAt.AddDays(-1)" Maximum="@DateTime.UtcNow.AddYears(100)"></MatDatePicker>
+                        <MatButton Type="button" OnClick="@(e => { _isCreateDialogOpen = false; })">Cancel</MatButton>
+                        <MatButton Type="submit" Raised="true">Save</MatButton>
+                    </EditForm>
+                </MatDialogContent>
+            </MatDialog>
+        </AuthorizedAsAdmin>
+    }
+}

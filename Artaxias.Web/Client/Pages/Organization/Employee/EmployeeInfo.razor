@@ -1,0 +1,144 @@
+﻿@attribute [Authorize]
+
+@if (EmployeeResponse == null || EmployeeRequest == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <EditForm Model="@EmployeeRequest" OnValidSubmit="@UpdateEmployeeAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="mat-layout-grid">
+            <div class="form-group d-flex justify-content-end">
+                <AuthorizedAsAdmin>
+                    <MatButton Label="Generate" Icon="@MatIconNames.Image_search" OnClick="@(() => { _isDocumentSelectOpen = !_isDocumentSelectOpen; })"></MatButton>
+                </AuthorizedAsAdmin>
+                <AuthorizedAsAdminOrSelf UserName="@EmployeeResponse.UserName">
+                    @if (IsEditDisabled)
+                    {
+                        <MatButton Label="Edit" Icon="@MatIconNames.Edit" OnClick="@(() => { IsEditDisabled = !IsEditDisabled; })"></MatButton>
+                    }
+                    else
+                    {
+                        <MatButton Type="button" OnClick="@(e => { IsEditDisabled = true; InitalizeRequests(); })">Cancel</MatButton>
+                        <MatButton Type="submit" Raised="true">Save</MatButton>
+                    }
+                </AuthorizedAsAdminOrSelf>
+            </div>
+            <div class="form-group">
+                <MatTextField Value="@EmployeeResponse.FullName" ValueExpression="@(()=>EmployeeResponse.FullName)" Label="Name" Icon="person" IconTrailing="true" FullWidth="true" ReadOnly="true"></MatTextField>
+            </div>
+            <div class="form-group">
+                <MatTextField @bind-Value="@EmployeeRequest.Position" Label="Position" FullWidth="true" Required="true" ReadOnly="@IsEditDisabled"></MatTextField>
+            </div>
+            @if (IsEditDisabled)
+            {
+                <div class="form-group">
+                    <MatTextField @bind-Value="@EmployeeResponse.ContractStart" Format="MMMM dd, yyyy" Label="Hired on" FullWidth="true" ReadOnly="true"></MatTextField>
+                </div>
+                <div class="form-group">
+                    <MatBody1>Departments</MatBody1>
+                    @foreach (var item in EmployeeResponse.Departments)
+                    {
+                        <MatChip Label="@item.DepartmentName" IsCheckable="false"></MatChip>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="form-group">
+                    <MatDatePicker @bind-Value="@EmployeeRequest.ContractStart" Label="Contract Start Date" HideClearButton="false" Required="false" Outlined="true"
+                                   Format="MMMM dd, yyyy" Box="true" Dense="true" AllowInput="true" Minimum="@DateTime.UtcNow.AddYears(-30)" Maximum="@DateTime.UtcNow.AddYears(30)">
+                    </MatDatePicker>
+                </div>
+                <div class="form-group">
+                    <MatBody1>Departments</MatBody1>
+                    @foreach (var selection in _departmentSelection)
+                    {
+                        <MatCheckbox TValue="bool"
+                                     Value="@selection.IsSelected"
+                                     ValueExpression="@(() => selection.IsSelected)"
+                                     ValueChanged="@(() => SelectCheckBoxMultipleAnswer(selection))"
+                                     Label="@selection.Name">
+                        </MatCheckbox>
+                    }
+                </div>
+            }
+        </div>
+    </EditForm>
+
+    <AuthorizedAsAdmin>
+        @if (EmployeeResponse.ContractEnd.HasValue)
+        {
+            <div class="mat-layout-grid mat-layout-grid-align-left" style="max-height: 50px; padding-bottom: 2px">
+                <div class="mat-layout-grid-inner">
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatSubtitle2>Contract Ended on @EmployeeResponse.ContractEnd.GetValueOrDefault().ToString("MMMM dd, yyyy")</MatSubtitle2>
+                    </div>
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatTooltip Tooltip="Renew Contract" Wrap="true">
+                            <MatButton Label="Renew Contract" Icon="@MatIconNames.Settings_backup_restore" OnClick="@(() => { IsEditDisabled = !IsEditDisabled; })"></MatButton>
+                        </MatTooltip>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (IsEditDisabled)
+        {
+            <EditForm Model="@EndContractRequest" OnValidSubmit="@EndContractAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <div class="row">
+                    <div class="col-4">
+                        <MatThemeProvider Theme="_theme">
+                            <MatCheckbox @bind-Value="@_isContractEndVisible">End Contract</MatCheckbox>
+                        </MatThemeProvider>
+                    </div>
+                    <div class="col-4">
+                        <MatThemeProvider Theme="_theme">
+                            <MatDatePicker Style="@(_isContractEndVisible ? "visibility:visible" : "visibility:hidden")" @bind-Value="@EndContractRequest.ContractEndDate"
+                                           Label="Contract End Date" HideClearButton="false" Format="MMMM dd, yyyy" Required="true"
+                                           Box="true" Dense="true" AllowInput="true" Minimum="@DateTime.UtcNow.AddYears(-30)" Maximum="@DateTime.UtcNow.AddYears(30)">
+                            </MatDatePicker>
+                        </MatThemeProvider>
+                    </div>
+                    <div class="col-4">
+                        <MatThemeProvider Theme="_theme">
+                            <MatButton Type="submit" Label="Confirm" Style="@(_isContractEndVisible ? "visibility:visible" : "visibility:hidden")"></MatButton>
+                        </MatThemeProvider>
+                    </div>
+                </div>
+            </EditForm>
+        }
+    </AuthorizedAsAdmin>
+
+    <AuthorizedAsAdmin>
+        <MatDialog IsOpen="@_isDocumentSelectOpen">
+            <EditForm Model="@ContractGenerationRequest" OnValidSubmit="@GenerateContractAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <MatDialogTitle>
+                    <MatH6>Select Template and Generate</MatH6>
+                </MatDialogTitle>
+                <MatDialogContent>
+
+                    <MatSelect @bind-Value="@ContractGenerationRequest.ContractTemplateId"
+                               Label="Contract Template" HelperText="Pick Contract Template">
+                        @foreach (var template in _contractTemplates)
+                            {
+                            <MatOption TValue="int" Value="@template.Id">@template.Title</MatOption>
+                            }
+                    </MatSelect>
+                </MatDialogContent>
+                <MatDialogActions>
+                    <MatButton Type="button" OnClick="@(e => { _isDocumentSelectOpen = !_isDocumentSelectOpen; InitalizeRequests(); })">Cancel</MatButton>
+                    <MatButton Type="submit" Raised="true">Generate</MatButton>
+                </MatDialogActions>
+            </EditForm>
+        </MatDialog>
+    </AuthorizedAsAdmin>
+}

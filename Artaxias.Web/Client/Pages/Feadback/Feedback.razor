@@ -1,0 +1,112 @@
+﻿@page "/feedbacks/{ReviewerUserName}/{ReviewerRevieweeId:int}"
+
+@using Core.Constants.Domain;
+
+@layout FeedbackLayout
+
+@if (_feedbackResponse == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <MatCard>
+        <MatButton Icon="@MatIconNames.Home" Label="Home" OnClick="@(()=>NavigationManager.NavigateTo("/"))"></MatButton>
+        <br />
+        <div class="justify-content-center">
+            <MatH5>Please provide feedback about <br /> <b>@_feedbackResponse.Reviewee.FullName</b></MatH5>
+        </div>
+    </MatCard>
+    <EditForm Model="@FeedbackRequest" OnValidSubmit="@ProvideFeedback">
+        <Microsoft.AspNetCore.Components.Forms.ObjectGraphDataAnnotationsValidator />
+        <ValidationSummary />
+        <MatCard Class="demo-mat-card">
+            <MatCardActions>
+                <MatCardActionIcons>
+                    <MatTooltip Context="another" Tooltip="Previous Question" Wrap="true">
+                        <MatIconButton Icon="@MatIconNames.Arrow_back" Disabled="@(currentIndex == 0)"
+                                       OnClick="@GoToPreviousQuestion"></MatIconButton>
+                    </MatTooltip>
+                    <MatTooltip Context="another" Tooltip="Next Question" Wrap="true">
+                        <MatIconButton Icon="@MatIconNames.Arrow_forward" Disabled="@(currentIndex == FeedbackRequest.FeedbackAnswerRequests.Count - 1)"
+                                       OnClick="@GoToNextQuestion"></MatIconButton>
+                    </MatTooltip>
+                </MatCardActionIcons>
+            </MatCardActions>
+            <MatBody1>@currentQuestion.Title</MatBody1>
+            <MatBody2>@currentQuestion.Description</MatBody2>
+            @{
+                if (currentQuestion.Answer.OptionType.Description == AnswerOptionTypes.OpenText)
+                {
+                    <MatTextField FullWidth="true" Outlined="true" PlaceHolder="Your answer" Label="Answer"
+                                  Required="true" @bind-Value="userAnswer.OpenTextValue"></MatTextField>
+                }
+                if (currentQuestion.Answer.OptionType.Description == AnswerOptionTypes.CheckBoxSingle)
+                {
+                    int userAnswerValueId = 0;
+                    <MatRadioGroup ValueExpression="@(() => userAnswerValueId)" TValue="int"
+                                   ValueChanged="@((userAnswerValueId) => SelectCheckBoxSingleAnswer(userAnswerValueId, currentQuestion))">
+                        @foreach (var answerValue in currentQuestion.Answer.Values)
+                        {
+                            <MatRadioButton TValue="int" Value="@answerValue.Id" Label="@answerValue.Value"></MatRadioButton>
+                        }
+                    </MatRadioGroup>
+                }
+                if (currentQuestion.Answer.OptionType.Description == AnswerOptionTypes.CheckBoxMultiple)
+                {
+                    var userAnswerSelection = _multiSelections.FirstOrDefault(m => m.QuestionId == currentQuestion.Id).AnswerSelections;
+
+                    foreach (var selection in userAnswerSelection)
+                    {
+                        <MatCheckbox TValue="bool"
+                                     Value="@selection.IsSelected"
+                                     ValueExpression="@(() => selection.IsSelected)"
+                                     ValueChanged="@(() => SelectCheckBoxMultipleAnswer(selection, currentQuestion))"
+                                     Label="@selection.Value">
+                        </MatCheckbox>
+                    }
+                }
+                if (currentQuestion.Answer.OptionType.Description == AnswerOptionTypes.DropDownSingle)
+                {
+                    int userAnswerValueId = 0;
+                    <MatSelect ValueExpression="@(() => userAnswerValueId)" TValue="int"
+                               ValueChanged="@((userAnswerValueId) => SelectCheckBoxSingleAnswer(userAnswerValueId, currentQuestion))"
+                               Label="Your Anwser" HelperText="Pick One Answer">
+                        @foreach (var answerValue in currentQuestion.Answer.Values)
+                        {
+                            <MatOption TValue="int" Value="@answerValue.Id">@answerValue.Value</MatOption>
+                        }
+                    </MatSelect>
+                }
+                if (currentQuestion.Answer.OptionType.Description == AnswerOptionTypes.DropDownMultiple)
+                {
+                    var userAnswerSelection = _multiSelections.FirstOrDefault(m => m.QuestionId == currentQuestion.Id).AnswerSelections;
+                    //To change to dropdown
+                    foreach (var selection in userAnswerSelection)
+                    {
+                        <MatCheckbox TValue="bool"
+                                     Value="@selection.IsSelected"
+                                     ValueExpression="@(() => selection.IsSelected)"
+                                     ValueChanged="@(() => SelectCheckBoxMultipleAnswer(selection, currentQuestion))"
+                                     Label="@selection.Value">
+                        </MatCheckbox>
+                    }
+                }
+            }
+            @if (currentIndex == FeedbackRequest.FeedbackAnswerRequests.Count - 1)
+            {
+                <div class="d-flex justify-content-end">
+                    <MatCardActions>
+                        <MatCardActionButtons>
+                            <MatTooltip Context="another" Tooltip="Submit Form" Wrap="true">
+                                <MatButton Type="submit" Label="Submit" Raised="true"></MatButton>
+                            </MatTooltip>
+                        </MatCardActionButtons>
+                    </MatCardActions>
+                </div>
+            }
+        </MatCard>
+    </EditForm>
+}

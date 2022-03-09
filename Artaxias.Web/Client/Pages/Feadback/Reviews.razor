@@ -1,0 +1,98 @@
+﻿@page "/reviews"
+@attribute [Authorize]
+
+@using Core.Constants.Domain;
+@using Artaxias.Core.Enums
+@using Artaxias.Core.Extensions
+
+<MatH4>Reviews</MatH4>
+
+<MatTable Class="mat-elevation-z5" Items="@_reviews" Striped="true" DebounceMilliseconds="150" ShowPaging="true"
+          LoadInitialData="true" RequestApiOnlyOnce="true" ApiUrl="api/reviews" AllowSelection="true" SelectionChanged="SelectionChangedEvent"
+          UseSortHeaderRow="true" FilterByColumnName="Department" SearchTermFieldLabel="Filter by Department" SearchTermFieldPlaceHolder="Department" PageSize="@PageSize">
+    <MatTableHeader>
+        <MatSortHeaderRow SortChanged="@SortData">
+            <AuthorizedAsAdmin>
+                <MatSortHeader>
+                    <MatTooltip Tooltip="Request a Review" Wrap="true">
+                        <MatButton Type="button" Icon="@MatIconNames.Add" Label="New"
+                                   Link="@NavigationManager.ToAbsoluteUri($"/reviews/request?returnUrl={NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}").AbsoluteUri"></MatButton>
+                    </MatTooltip>
+                </MatSortHeader>
+            </AuthorizedAsAdmin>
+            <MatSortHeader SortId="id">Id</MatSortHeader>
+            <MatSortHeader SortId="title">Title</MatSortHeader>
+            <MatSortHeader SortId="template">Template</MatSortHeader>
+            <MatSortHeader SortId="state"><span style="width:100px">State</span> </MatSortHeader>
+            <MatSortHeader SortId="creator">Created on</MatSortHeader>
+            <MatSortHeader SortId="question-count">Deadline</MatSortHeader>
+            <MatSortHeader SortId="department">Department</MatSortHeader>
+        </MatSortHeaderRow>
+    </MatTableHeader>
+    <MatTableRow Context="ReviewRow">
+        <AuthorizedAsAdmin>
+            <td>
+                <div style="width: auto">
+                    @if (ReviewRow.StateId != (int)EDomainState.Completed)
+                    {
+                        <TableRowEditButton Link="@NavigationManager.ToAbsoluteUri($"/reviews/{ReviewRow.Id}?isEditDisabled={false}&returnUrl={NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}").AbsoluteUri"></TableRowEditButton>
+                    }
+                    <MatTooltip Tooltip="Delete" Wrap="true">
+                        <MatIconButton Icon="@MatIconNames.Delete" OnClick="@(() => OpenDeleteDialog(ReviewRow.Id))"></MatIconButton>
+                    </MatTooltip>
+                </div>
+            </td>
+        </AuthorizedAsAdmin>
+        <td>@ReviewRow.Id</td>
+        <td>@ReviewRow.Title</td>
+        <td>@ReviewRow.Template.Title</td>
+        <td><DomainStateChip StateId="@ReviewRow.StateId"></DomainStateChip></td>
+        <td>@ReviewRow.Created.ToString("MMMM dd, yyyy")</td>
+        <td>@ReviewRow.Deadline.ToString("MMMM dd, yyyy")</td>
+        <td>
+            <MatChipSet>
+                @{
+                    if (ReviewRow.Departments != null)
+                    {
+                        int currentCount = 0;
+                        foreach (var item in ReviewRow.Departments)
+                        {
+                            if (!ReviewRow.DisplayMore)
+                            {
+                                if (currentCount <= 3)
+                                {
+                                    <MatChip Label="@item.DepartmentName"></MatChip>
+                                }
+                            }
+                            else
+                            {
+                                <MatChip Label="@item.DepartmentName"></MatChip>
+                                @*<MatChip Label="@item.FullName" TrailingIcon="@(item.Id==DepartmentRow.DepartmentHeadId? MatIconNames.Person:"")"
+                                    IsCheckable="false"></MatChip>*@
+                            }
+                            currentCount++;
+                        }
+                        if (ReviewRow.Departments.Count > 4)
+                        {
+                            <MatChip LeadingIcon="@(ReviewRow.DisplayMore ? MatIconNames.Visibility : MatIconNames.Visibility_off)"
+                                     @onclick="@(()=>ShowMore(ReviewRow.Id))"></MatChip>
+                        }
+                    }
+                }
+            </MatChipSet>
+        </td>
+    </MatTableRow>
+</MatTable>
+
+<AuthorizedAsAdmin>
+    <MatDialog @bind-IsOpen="@_isDeleteDialogOpen" Style="z-index:100">
+        <MatDialogTitle><MatIcon Icon="warning"></MatIcon> Confirm Delete</MatDialogTitle>
+        <MatDialogContent>
+            Are you sure you want to delete the review "@_currentReviewId"?
+        </MatDialogContent>
+        <MatDialogActions>
+            <MatButton OnClick="@(e => { _isDeleteDialogOpen = false; _currentReviewId = 0; })">Cancel</MatButton>
+            <MatButton OnClick="@DeleteReview">Delete</MatButton>
+        </MatDialogActions>
+    </MatDialog>
+</AuthorizedAsAdmin>

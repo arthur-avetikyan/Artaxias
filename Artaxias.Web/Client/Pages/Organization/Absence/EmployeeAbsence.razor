@@ -1,0 +1,157 @@
+﻿@using Artaxias.Web.Common.DataTransferObjects.Organization
+@using Artaxias.Web.Client.Pages.Organization.Employee
+@using Artaxias.Core.Extensions
+
+@if (_currentSelectedAbsence != null)
+{
+
+}
+
+<MatTable Items="@_absences" LoadInitialData="true" Striped="true" RequestApiOnlyOnce="true" ApiUrl="@($"api/absences?employeeId={EmployeeId}")" UseSortHeaderRow="true"
+          class="mat-elevation-z5" PageSize="PageSize" AllowSelection="true" SelectionChanged="SelectionChangedEvent">
+    <MatTableHeader>
+        <MatSortHeaderRow>
+            @if (!IsContractEnded)
+            {
+                <MatSortHeader>
+                    <span style="width: 80px">
+                        <AuthorizedAsAdminOrSelf EmployeeId="EmployeeId">
+                            <MatButton Icon="add" Label="New" OnClick="@OpenCreateDialog"></MatButton>
+                        </AuthorizedAsAdminOrSelf>
+                    </span>
+                </MatSortHeader>
+            }
+            @if (EmployeeId == 0)
+            {
+                <MatSortHeader>Employee</MatSortHeader>
+            }
+            <MatSortHeader>Reason</MatSortHeader>
+            <MatSortHeader>Type</MatSortHeader>
+            <TableHeaderColumn Width="90" Label="Start Date"></TableHeaderColumn>
+            <TableHeaderColumn Width="90" Label="End Date"></TableHeaderColumn>
+            <TableHeaderColumn Width="90" Label="State"></TableHeaderColumn>
+            <MatSortHeader>Approver</MatSortHeader>
+        </MatSortHeaderRow>
+
+    </MatTableHeader>
+    <MatTableRow Context="item">
+        @if (!IsContractEnded)
+        {
+            <td>
+                <AuthorizedAsAdminOrSelf EmployeeId="item.Receiver.Id">
+                    <TableRowEditButton Link="@($"/absences/{item.Id}?isEditEnabled=true&returnUrl={_currentUrl}")"></TableRowEditButton>
+                    <TableRowDeleteButton Link="@($"/absences/{item.Id}?deleteAbsenceExpansionOpen=true&returnUrl={_currentUrl}")"></TableRowDeleteButton>
+                </AuthorizedAsAdminOrSelf>
+            </td>
+        }
+        @if (EmployeeId == 0)
+        {
+            <td>
+                <EmployeeTag EmployeeId="@item.Receiver.Id" EmployeeFullName="@item.Receiver.FullName"></EmployeeTag>
+            </td>
+        }
+        <td>
+            @item.Reason
+        </td>
+        <td>
+            @item.TypeDescription
+        </td>
+        <td>
+            @item.StartDate.ToDomainStringDate()
+        </td>
+        <td>
+            @item.EndDate.ToDomainStringDate()
+        </td>
+        <td>
+            <DomainStateChip StateId="@item.StateId"></DomainStateChip>
+        </td>
+        <td>
+            <div style="width: auto;">
+                <EmployeeTag EmployeeId="@item.Approver.Id" EmployeeFullName="@item.Approver.FullName"></EmployeeTag>
+            </div>
+        </td>
+    </MatTableRow>
+</MatTable>
+
+@if (!IsContractEnded)
+{
+    <MatDialog @bind-IsOpen="@_isCreateRequestDialogOpen">
+        <MatDialogTitle>Create Absence Request</MatDialogTitle>
+        <MatDialogContent>
+            <EditForm Model="@AbsenceRequest" OnValidSubmit="@CreateAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <fieldset>
+                    <div class="form-group">
+                        <MatSelect @bind-Value="@AbsenceRequest.ReceiverId" Label="Employee" HelperText="Pick Employee" FullWidth="true" Outlined="true">
+                            @{
+                                    if (AbsenceRequest.ReceiverId > 0)
+                                    {
+                                    <MatOption TValue="int" Value="@AbsenceRequest.ReceiverId">
+                                        @(_employees.FirstOrDefault(t => t.Id == AbsenceRequest.ReceiverId)?.FullName)
+                                    </MatOption>
+                                    }
+                                    foreach (var item in _employees)
+                                    {
+                                        if (item.Id != AbsenceRequest.ReceiverId)
+                                        {
+                                        <AuthorizedAsAdminOrSelf EmployeeId="item.Id">
+                                            <MatOption TValue="int" Value="@item.Id">@item.FullName</MatOption>
+                                        </AuthorizedAsAdminOrSelf>
+                                        }
+                                    }
+                            }
+                        </MatSelect>
+                    </div>
+                    <div class="form-group">
+                        <MatSelect @bind-Value="@AbsenceRequest.ApproverId" Label="Approver" HelperText="Pick Approver" FullWidth="true" Outlined="true">
+                            @{
+                                    if (AbsenceRequest.ApproverId > 0)
+                                    {
+                                    <MatOption TValue="int" Value="@AbsenceRequest.ApproverId">@(_employees.FirstOrDefault(t => t.Id == AbsenceRequest.ApproverId)?.FullName)</MatOption>
+                                    }
+                                    foreach (var item in _employees)
+                                    {
+                                        if (item.Id != AbsenceRequest.ReceiverId)
+                                        {
+                                        <MatOption TValue="int" Value="@item.Id">@item.FullName</MatOption>
+                                        }
+                                    }
+                            }
+                        </MatSelect>
+                    </div>
+                    <div class="form-group">
+                        <MatSelect @bind-Value="@AbsenceRequest.TypeId" Label="Type" HelperText="Pick Type" FullWidth="true" Outlined="true">
+                            @{
+                                    foreach (var item in _absenceTypes)
+                                    {
+                                        if (item.Id != AbsenceRequest.TypeId)
+                                        {
+                                        <MatOption TValue="int" Value="@item.Id">@item.Description</MatOption>
+                                        }
+                                    }
+                            }
+                        </MatSelect>
+                    </div>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@AbsenceRequest.Reason" Label="Reason" Icon="assignment_late" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+                    </div>
+                    <div class="form-group">
+                        <MatDatePicker @bind-Value="@AbsenceRequest.StartDate" Label="Start Date" HideClearButton="false" Required="false" Outlined="true"
+                                       Format="yyyy MMMM dd" Box="true" Dense="true" AllowInput="true" Minimum="@DateTime.UtcNow" Maximum="@DateTime.UtcNow.AddYears(1)">
+                        </MatDatePicker>
+                    </div>
+                    <div class="form-group">
+                        <MatDatePicker @bind-Value="@AbsenceRequest.EndDate" Label="End Date" HideClearButton="false" Required="false" Outlined="true"
+                                       Format="yyyy MMMM dd" Box="true" Dense="true" AllowInput="true" Minimum="AbsenceRequest.StartDate.AddDays(1)" Maximum="@DateTime.UtcNow.AddYears(1)">
+                        </MatDatePicker>
+                    </div>
+                </fieldset>
+            </EditForm>
+        </MatDialogContent>
+        <MatDialogActions>
+            <MatButton OnClick="@CloseCreateDialog">Cancel</MatButton>
+            <MatButton OnClick="@CreateAsync">Save</MatButton>
+        </MatDialogActions>
+    </MatDialog>
+}

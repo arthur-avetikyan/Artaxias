@@ -1,0 +1,16 @@
+﻿@using Artaxias.Web.Common.DataTransferObjects.Account;
+
+<AuthorizeView Context="AuthorizeContext">
+    <Authorized>
+        @{
+            if (IsAuthorized(AuthorizeContext))
+            {
+                @ChildContent
+            }
+            else if (DisplayNotFound)
+            {
+                <PageNotFound></PageNotFound>
+            }
+        }
+    </Authorized>
+</AuthorizeView>

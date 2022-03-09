@@ -1,0 +1,85 @@
+﻿@page "/contracts"
+
+@attribute [Authorize]
+
+@if (_contracts == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <MatTable Class="mat-elevation-z5" Items="@_contracts" Striped="true" DebounceMilliseconds="150" ShowPaging="true" PageSize="@PageSize"
+              LoadInitialData="true" RequestApiOnlyOnce="true" ApiUrl="api/contracts" UseSortHeaderRow="true"
+              FilterByColumnName="Title" SearchTermFieldLabel="Filter by Title" SearchTermFieldPlaceHolder="Title">
+        <MatTableHeader>
+            <MatSortHeaderRow SortChanged="@SortData">
+                <AuthorizedAsAdmin>
+                    <MatSortHeader>
+                        <MatTooltip Tooltip="Upload a Contract Template" Wrap="true">
+                            <MatButton Type="button" Icon="@MatIconNames.Add" Label="New" OnClick="@OpenUploadDialog"></MatButton>
+                        </MatTooltip>
+                    </MatSortHeader>
+                </AuthorizedAsAdmin>
+                <MatSortHeader SortId="title">Title</MatSortHeader>
+                <MatSortHeader SortId="creator">Created By</MatSortHeader>
+                <MatSortHeader SortId="created-date">Created on</MatSortHeader>
+            </MatSortHeaderRow>
+        </MatTableHeader>
+        <MatTableRow Context="ContractTemplateRow">
+            <AuthorizedAsAdmin>
+                <td>
+                    <div style="width: auto">
+                        <TableRowEditButton Click="@(() =>NavigateToEdit($"contracts/{ContractTemplateRow.Id}"))"></TableRowEditButton>
+                        <TableRowDeleteButton Click="@(() => OpenDeleteDialog(ContractTemplateRow.Id))"></TableRowDeleteButton>
+                    </div>
+                </td>
+            </AuthorizedAsAdmin>
+            <td>@ContractTemplateRow.Title</td>
+            <td>@ContractTemplateRow.CreatorName</td>
+            <td>@ContractTemplateRow.CreatedDatetimeUTC.ToString("MMMM dd, yyyy")</td>
+        </MatTableRow>
+    </MatTable>
+
+    <AuthorizedAsAdmin>
+        <MatDialog @bind-IsOpen="@_isDeleteDialogOpen" Style="z-index:100">
+            <MatDialogTitle><MatIcon Icon="warning"></MatIcon> Confirm Delete</MatDialogTitle>
+            <MatDialogContent>
+                Are you sure you want to delete the contract template "@_currentContractTemplateTitle"?
+            </MatDialogContent>
+            <MatDialogActions>
+                <MatButton OnClick="@(e => { _isDeleteDialogOpen = false; })">Cancel</MatButton>
+                <MatButton OnClick="@DeleteAsync">Delete</MatButton>
+            </MatDialogActions>
+        </MatDialog>
+    </AuthorizedAsAdmin>
+
+    <AuthorizedAsAdmin>
+        <MatDialog @bind-IsOpen="@_isUploadDialogOpen">
+            <MatDialogTitle>Upload Plugin</MatDialogTitle>
+            <EditForm Model="@ContractTemplateRequest" OnValidSubmit="@Upload">
+                <MatDialogContent>
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                    <fieldset>
+                        <div class="form-group">
+                            <MatTextField Label="Title" PlaceHolder="Title" Required="true" @bind-Value="ContractTemplateRequest.Title"></MatTextField>
+                        </div>
+                        <div class="form-group">
+                            <MatFileUpload OnChange="@FilesReadyMat" AllowMultiple="false" Label="Browse single file"></MatFileUpload>
+                            @if (_matFileUpload != null)
+                            {
+                                <MatBody1>@_matFileUpload.Name</MatBody1>
+                            }
+                        </div>
+                    </fieldset>
+                </MatDialogContent>
+                <MatDialogActions>
+                    <MatButton Type="reset" OnClick="@(e => { _isUploadDialogOpen = false; })">Cancel</MatButton>
+                    <MatButton Type="submit">Save</MatButton>
+                </MatDialogActions>
+            </EditForm>
+        </MatDialog>
+    </AuthorizedAsAdmin>
+}

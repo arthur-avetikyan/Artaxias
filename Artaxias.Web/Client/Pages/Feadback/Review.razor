@@ -1,0 +1,179 @@
+﻿@page "/reviews/request"
+@page "/reviews/{ReviewId:int}"
+@attribute [Authorize]
+
+@if (_templates == null || _employees == null || _departments == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <MatAccordion LazyRendering="true">
+        <EditForm Model="@ReviewRequest" OnValidSubmit="@SaveReview">
+            <Microsoft.AspNetCore.Components.Forms.ObjectGraphDataAnnotationsValidator />
+            <ValidationSummary />
+
+            <ProfileTopBar ReturnUrl="@_returnUrl" StateId="@_review.StateId">
+                <AuthorizedAsAdmin>
+                    @if (_isEditDisabled)
+                    {
+                        <MatButton Label="Edit" Icon="@MatIconNames.Edit" OnClick="@(() => { _isEditDisabled = !_isEditDisabled; })"></MatButton>
+                    }
+                    else
+                    {
+                        <MatButton Type="reset" Label="Cancel" OnClick="@(() => { _isEditDisabled = !_isEditDisabled; })"></MatButton>
+                        <MatButton Type="submit" Label="Save" Raised="true"></MatButton>
+                    }
+                </AuthorizedAsAdmin>
+            </ProfileTopBar>
+
+            <MatExpansionPanel Expanded="@_isPanelOpen" ExpandedChanged="@ChangeExpantionPanel">
+                <MatExpansionPanelSummary>
+                    <MatExpansionPanelHeader>Review Details</MatExpansionPanelHeader>
+                </MatExpansionPanelSummary>
+                <MatExpansionPanelDetails Class="mat-drawer-container-responsive">
+                    <div class="form-group">
+                        @if (_departments != null)
+                        {
+                            <MatChipSet>
+                                @{
+                                    if (_isEditDisabled && _review.StateId != (int)EDomainState.Completed)
+                                    {
+                                        @foreach (var department in _review.Departments)
+                                        {
+                                            <MatChip Label="@department.DepartmentName" IsCheckable="false"></MatChip>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @foreach (var department in _departments.OrderBy(x => x.Name))
+                                        {
+                                            <MatChip Label="@department.Name" Value="@department.Id" LeadingIcon="@((department.DisplayMore) ? "done" : "")"
+                                                     @onclick="@(() => UpdateDepartments(department))" />
+                                        }
+                                    }
+                                }
+                            </MatChipSet>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <MatSelect @bind-Value="@ReviewRequest.TemplateId" Label="Template" HelperText="Pick Template" Style="width:100%">
+                            <MatOption TValue="int" Value="0" Disabled="true">Not Selected</MatOption>
+                            @{
+                                    if (ReviewRequest.TemplateId > 0)
+                                    {
+                                        var currentTemplate = _templates.FirstOrDefault(t => t.Id == ReviewRequest.TemplateId);
+                                    <MatOption Disabled="true" TValue="int" Value="@currentTemplate.Id">@currentTemplate.Title</MatOption>
+                                    }
+                                    foreach (var item in _templates)
+                                    {
+                                        bool isCurrentTemplate = _isEditDisabled && _review.StateId != (int)EDomainState.Processing;
+                                    <MatOption Disabled="@isCurrentTemplate"
+                                               TValue="int" Value="@item.Id">@item.Title</MatOption>
+                                            }
+                            }
+                        </MatSelect>
+                    </div>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@ReviewRequest.Title" Label="Title" Required="true" ReadOnly="@_isEditDisabled" FullWidth="true"></MatTextField>
+                    </div>
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="form-group col-md-6">
+                                @{
+                                    bool current = _isEditDisabled && _review.StateId != (int)EDomainState.Completed;
+                                    <MatDatePicker @bind-Value="@ReviewRequest.Deadline" Box="true" Dense="true" AllowInput="true"
+                                                   ReadOnly="@current"
+                                                   Label="Deadline" HideClearButton="false" Format="MMMM dd, yyyy" Required="true"
+                                                   Minimum="@DateTime.UtcNow.AddDays(1)" Maximum="@DateTime.UtcNow.AddYears(30)">
+                                    </MatDatePicker>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </MatExpansionPanelDetails>
+            </MatExpansionPanel>
+            <AuthorizedAsAdmin>
+                @if (ReviewRequest.ReviewerReviewees.Count > 0)
+                {
+                    <MatExpansionPanel Expanded="@(!_isPanelOpen)" ExpandedChanged="@ChangeExpantionPanel">
+                        <MatExpansionPanelSummary>
+                            <MatExpansionPanelHeader>Reviewer and Reviewee</MatExpansionPanelHeader>
+                        </MatExpansionPanelSummary>
+                        <MatExpansionPanelDetails Class="mat-drawer-container-responsive">
+                            @for (int i = 0; i < ReviewRequest.ReviewerReviewees.Count; i++)
+                            {
+                                int reviewerRevieweeIndex = i;
+                                var currentReviewerReviewee = ReviewRequest.ReviewerReviewees[reviewerRevieweeIndex];
+                                var currentEmployees = _employees.Where(e => e.Departments.Any(d => ReviewRequest.DepartmentIds.Contains(d))) ??
+                                    new List<Artaxias.Web.Common.DataTransferObjects.Organization.EmployeeInfo>();
+                                bool disabled = _isEditDisabled || currentReviewerReviewee.StateId == (int)EDomainState.Completed;
+
+                                <div class="row">
+
+                                    <div class="form-group col-md-3">
+                                        <MatSelect @bind-Value="@currentReviewerReviewee.Reviewer.Id" Label="Reviewer" HelperText="Pick Reviewer">
+                                            <MatOption TValue="int" Value="0" Disabled="true">Not Selected</MatOption>
+                                            @if (currentReviewerReviewee.Reviewer.Id > 0)
+                                                        {
+                                                            var currentEmployee = _employees.FirstOrDefault(t => t.Id == currentReviewerReviewee.Reviewer.Id);
+                                                <MatOption Disabled="true" TValue="int" Value="@currentEmployee.Id">@currentEmployee.FullName</MatOption>
+                                                        }
+                                            @foreach (var item in currentEmployees)
+                                                        {
+                                                <MatOption Disabled="@disabled" TValue="int" Value="@item.Id">@item.FullName</MatOption>
+                                                        }
+                                        </MatSelect>
+                                    </div>
+
+                                    <div class="form-group col-md-3">
+                                        <MatSelect @bind-Value="@currentReviewerReviewee.Reviewee.Id" Label="Reviewee" HelperText="Pick Reviewee">
+                                            <MatOption TValue="int" Value="0" Disabled="true">Not Selected</MatOption>
+                                            @if (currentReviewerReviewee.Reviewee.Id > 0)
+                                                        {
+                                                            var currentEmployee = _employees.FirstOrDefault(t => t.Id == currentReviewerReviewee.Reviewee.Id);
+                                                <MatOption Disabled="true" TValue="int" Value="@currentEmployee.Id">@currentEmployee.FullName</MatOption>
+                                                        }
+                                            @foreach (var item in currentEmployees)
+                                                        {
+                                                <MatOption Disabled="@disabled" TValue="int" Value="@item.Id">@item.FullName</MatOption>
+                                                        }
+                                        </MatSelect>
+                                    </div>
+
+                                    <div class="form-group col-md-3">
+                                        @if (!_isEditDisabled && currentReviewerReviewee.StateId != (int)EDomainState.Completed)
+                                        {
+                                            @if (ReviewRequest.ReviewerReviewees.Count > 1)
+                                            {
+                                                <MatButton Type="button" Icon="@MatIconNames.Clear" Disabled="@disabled"
+                                                           OnClick="@(()=>RemoveReviewerReviewee(reviewerRevieweeIndex))">Remove</MatButton>
+                                            }
+                                        }
+                                        else if (currentReviewerReviewee.StateId == (int)EDomainState.Completed)
+                                        {
+                                            <MatButton Type="button" Icon="@MatIconNames.Link" Label="View Feedback"
+                                                       Link="@GetFeedbackUrl(currentReviewerReviewee.Reviewee.Id, disabled)"></MatButton>
+                                        }
+                                    </div>
+
+                                    <div class="form-group col-md-3">
+                                        <DomainStateChip StateId="@currentReviewerReviewee.StateId"></DomainStateChip>
+                                    </div>
+
+                                </div>
+                            }
+                            @if (!_isEditDisabled)
+                            {
+                                <MatButton Type="button" Raised="true" Icon="@MatIconNames.Add" Label="Add Reviewer and Reviewee"
+                                           OnClick="@(() => AddReviewerReviewee())" Disabled="@_isEditDisabled"></MatButton>
+                            }
+                        </MatExpansionPanelDetails>
+                    </MatExpansionPanel>
+                }
+            </AuthorizedAsAdmin>
+        </EditForm>
+    </MatAccordion>
+}

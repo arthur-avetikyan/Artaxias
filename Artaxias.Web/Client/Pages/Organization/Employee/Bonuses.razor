@@ -1,0 +1,103 @@
+﻿@attribute [Authorize]
+
+@if (_bonuses == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    @if (!IsContractEnded)
+    {
+        <AuthorizedAsAdmin>
+            <MatTooltip Class="mat-elevation-z5" Wrap="true" Tooltip="New Bonus">
+                <MatButton Icon="@MatIconNames.Attach_money" OnClick="@(() => OpenCreateDialog())">New Bonus</MatButton>
+            </MatTooltip>
+        </AuthorizedAsAdmin>
+    }
+
+    <AuthorizedAsAdminOrSelf EmployeeId="@EmployeeId">
+        <MatTable Class="mat-elevation-z5" Items="@_bonuses" Striped="true" UseSortHeaderRow="true" ShowPaging="true" PageSize="10"
+                  LoadInitialData="true" RequestApiOnlyOnce="true" ApiUrl="@($"api/bonuses/{EmployeeId}")"
+                  AllowSelection="true" SelectionChanged="SelectionChangedEvent">
+            <MatTableHeader>
+                <MatSortHeaderRow SortChanged="SortBonusData">
+                    <MatSortHeader SortId="amount">Amount</MatSortHeader>
+                    <MatSortHeader SortId="payment-date">Payment Date</MatSortHeader>
+                    <MatSortHeader SortId="state">State</MatSortHeader>
+                    <MatSortHeader SortId="receiver">Receiver</MatSortHeader>
+                    <MatSortHeader SortId="requester">Requester</MatSortHeader>
+                    <MatSortHeader SortId="approver">Approver</MatSortHeader>
+                    <MatSortHeader SortId="comment">Comment</MatSortHeader>
+                </MatSortHeaderRow>
+            </MatTableHeader>
+            <MatTableRow Context="BonusRow">
+                <td>@BonusRow.Amount.ToString("C", System.Globalization.CultureInfo.CreateSpecificCulture("hy-AM"))</td>
+                <td>@BonusRow.PaymentDate.ToString("MMMM dd, yyyy")</td>
+                <td><DomainStateChip StateId="@BonusRow.DomainStateId"></DomainStateChip></td>
+                <td>
+                    <EmployeeTag EmployeeId="@BonusRow.Receiver.Id" EmployeeFullName="@BonusRow.Receiver.FullName"></EmployeeTag>
+                </td>
+                <td>
+                    <EmployeeTag EmployeeId="@BonusRow.Requester.Id" EmployeeFullName="@BonusRow.Requester.FullName"></EmployeeTag>
+                </td>
+                <td>
+                    <EmployeeTag EmployeeId="@BonusRow.Approver.Id" EmployeeFullName="@BonusRow.Approver.FullName"></EmployeeTag>
+                </td>
+                <td>@BonusRow.Comment</td>
+            </MatTableRow>
+        </MatTable>
+    </AuthorizedAsAdminOrSelf>
+
+    @if (!IsContractEnded)
+    {
+        <AuthorizedAsAdmin>
+            <MatDialog @bind-IsOpen="@_isCreateDialogOpen">
+                <MatDialogTitle>New Bonus Request</MatDialogTitle>
+                <MatDialogContent>
+                    <EditForm Model="@Request" OnValidSubmit="@CreateBonusAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="form-group">
+                            <MatNumericUpDownField Style="width:100%" Label="Amount" @bind-Value=@Request.Amount FieldType="MatNumericUpDownFieldType.Currency"
+                                                   DecimalPlaces=2 Minimum="0" Step="10000" HideClearButton="false" Required="true"></MatNumericUpDownField>
+                        </div>
+                        <div class="form-group">
+                            <MatDatePicker Style="width:100%" @bind-Value="@Request.PaymentDate" Label="Payment Date" HideClearButton="false"
+                                           Format="MMMM dd, yyyy" Required="true" Minimum="@DateTime.UtcNow.AddDays(1)" Maximum="@DateTime.UtcNow.AddYears(100)">
+                            </MatDatePicker>
+                        </div>
+                        <div class="form-group">
+                            <MatSelect @bind-Value="@Request.ApproverId" Label="Approver" HelperText="Pick Approver" Outlined="true">
+                                @{
+                                            if (Request.ApproverId > 0)
+                                            {
+                                        <MatOption TValue="int" Value="@Request.ApproverId">@(_employees.FirstOrDefault(t => t.Id == Request.ApproverId)?.FullName)</MatOption>
+                                            }
+                                            foreach (var item in _employees)
+                                            {
+                                                if (item.Id != Request.ApproverId)
+                                                {
+                                            <AuthorizedAsAdminOrSelf EmployeeId="item.Id">
+                                                <MatOption TValue="int" Value="@item.Id">@item.FullName</MatOption>
+                                            </AuthorizedAsAdminOrSelf>
+                                                }
+                                            }
+                                }
+                            </MatSelect>
+                        </div>
+                        <div class="d-flex">
+                            <div class="justify-content-start">
+                                <MatButton Type="button" OnClick="@(e => { _isCreateDialogOpen = false; })">Cancel</MatButton>
+                            </div>
+                            <div class="justify-content-end">
+                                <MatButton Type="submit" Raised="true">Save</MatButton>
+                            </div>
+                        </div>
+                    </EditForm>
+                </MatDialogContent>
+            </MatDialog>
+        </AuthorizedAsAdmin>
+    }
+}

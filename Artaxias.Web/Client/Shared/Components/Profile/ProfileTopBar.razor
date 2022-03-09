@@ -1,0 +1,30 @@
+﻿
+<div class="d-flex bd-highlight mb-3">
+    @if (!string.IsNullOrEmpty(ReturnUrl))
+    {
+        <div class="p-1 bd-highlight">
+            <BackButton ReturnUrl="@ReturnUrl"></BackButton>
+        </div>
+    }
+    @{
+        if (IsAlignedLeft)
+        {
+            <div class="ml-5 p-2 bd-highligh">
+                @ChildContent
+            </div>
+        }
+        else
+        {
+            @if (StateId != 0)
+            {
+                <div class="ml-5 p-2 bd-highligh" style="padding-left: 100px">
+                    <DomainStateChip StateId="@StateId"></DomainStateChip>
+                </div>
+            }
+            <div class="ml-auto p-2 bd-highligh">
+                @ChildContent
+            </div>
+        }
+    }
+
+</div>

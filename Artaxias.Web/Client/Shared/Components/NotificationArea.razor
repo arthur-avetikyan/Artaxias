@@ -1,0 +1,40 @@
+﻿@if (!string.IsNullOrWhiteSpace(UserName))
+{
+    <MatTooltip Tooltip="Notifications" Wrap="true">
+        <MatButton Icon="@MatIconNames.Notifications" RefBack="@buttonForwardRef" Raised="HasNotification" OnClick="OnClick">
+            @if (HasNotification)
+            {
+                <MatCaption>@_notificationsCount</MatCaption>
+            }
+        </MatButton>
+        <MatMenu @ref="Menu" TargetForwardRef="@buttonForwardRef">
+            @if (HasNotification)
+            {
+                <MatListGroup>
+                    @foreach (var category in categories)
+                    {
+                        <MatListGroupSubHeader>@category</MatListGroupSubHeader>
+                        <MatList SingleSelection="true" TwoLine="true">
+                            @foreach (var item in _notificationItems.Where(n => n.Category == category))
+                            {
+                                <MatListItem OnClick="(()=>OpenNotification(item.Url))">
+                                    <MatListItemText>
+                                        <MatListItemPrimaryText>@item.Title</MatListItemPrimaryText>
+                                        <MatListItemSecondaryText>@item.Message</MatListItemSecondaryText>
+                                    </MatListItemText>
+                                </MatListItem>
+                                <MatDivider Padded="true"></MatDivider>
+                            }
+                        </MatList>
+                    }
+                </MatListGroup>
+            }
+            else
+            {
+                <MatList>
+                    <MatListItem>You do not have notifications</MatListItem>
+                </MatList>
+            }
+        </MatMenu>
+    </MatTooltip>
+}

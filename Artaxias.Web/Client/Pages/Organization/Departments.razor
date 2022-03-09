@@ -1,0 +1,152 @@
+﻿@page "/departments"
+
+@attribute [Authorize]
+
+@using Artaxias.Web.Client.Pages.Organization.Employee
+
+<MatH4>Departments</MatH4>
+
+@if (_departments == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <MatTable Class="mat-elevation-z5" Items="@_departments" LoadInitialData="true" Striped="true" RequestApiOnlyOnce="true" ApiUrl="api/departments"
+              DebounceMilliseconds="150" UseSortHeaderRow="true" FilterByColumnName="Name"
+              SearchTermFieldLabel="Filter by Name" SearchTermFieldPlaceHolder="Department" PageSize="@PageSize">
+        <MatTableHeader>
+            <MatSortHeaderRow SortChanged="@SortData">
+                <AuthorizedAsAdmin>
+                    <MatSortHeader>
+                        <MatTooltip Tooltip="Add New Department" Wrap="true">
+                            <MatButton Type="button" Icon="@MatIconNames.Add" Label="New"
+                                       OnClick="@(() =>OpenInsertDialog())"></MatButton>
+                        </MatTooltip>
+                    </MatSortHeader>
+                </AuthorizedAsAdmin>
+                <MatSortHeader SortId="department"><span style="width: auto">Department Name</span></MatSortHeader>
+                <MatSortHeader SortId="staff-count"><span style="width: auto">Staff</span></MatSortHeader>
+                <MatSortHeader><span style="width: auto">Staff</span></MatSortHeader>
+            </MatSortHeaderRow>
+        </MatTableHeader>
+        <MatTableRow Context="DepartmentRow">
+            <AuthorizedAsAdmin>
+                <td>
+                    <div style="width: auto;">
+                        <MatTooltip Tooltip="Edit" Wrap="true">
+                            <MatIconButton Icon="edit" OnClick="@(() => OpenEditDialog(DepartmentRow.Id))"></MatIconButton>
+                        </MatTooltip>
+                        <MatTooltip Tooltip="Delete" Wrap="true">
+                            <MatIconButton Icon="delete" OnClick="@(() => OpenDeleteDialog(DepartmentRow.Id))"></MatIconButton>
+                        </MatTooltip>
+                    </div>
+                </td>
+            </AuthorizedAsAdmin>
+            <td><div style="width: auto;">@DepartmentRow.Name</div></td>
+            <td><div style="width: auto;">@DepartmentRow.Staff.Count</div></td>
+            <td>
+                <MatChipSet>
+                    @{
+                            int currentCount = 0;
+                            foreach (var item in DepartmentRow.Staff)
+                            {
+                                if (!DepartmentRow.DisplayMore)
+                                {
+                                    if (currentCount <= 3)
+                                    {
+                                    <MatChip Label="@item.FullName"></MatChip>
+                                    }
+                                }
+                                else
+                                {
+                                <MatChip Label="@item.FullName"></MatChip>
+                                @*<MatChip Label="@item.FullName" TrailingIcon="@(item.Id==DepartmentRow.DepartmentHeadId? MatIconNames.Person:"")"
+                                    IsCheckable="false"></MatChip>*@
+                                }
+                                currentCount++;
+                            }
+                            if (DepartmentRow.Staff.Count > 4)
+                            {
+                            <MatChip LeadingIcon="@(DepartmentRow.DisplayMore ? MatIconNames.Visibility : MatIconNames.Visibility_off)"
+                                     @onclick="@(()=>ShowMore(DepartmentRow.Id))"></MatChip>
+                            }
+                    }
+                </MatChipSet>
+            </td>
+        </MatTableRow>
+    </MatTable>
+}
+
+<AuthorizedAsAdmin>
+    <MatDialog @bind-IsOpen="@_isInsertDialogOpen">
+        <MatDialogTitle>Create Department</MatDialogTitle>
+        <MatDialogContent>
+            <fieldset>
+                <div class="form-group">
+                    <MatTextField @bind-Value="@_currentDepartmentName" Disabled="false" Label="Department Name" Icon="add" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+                </div>
+            </fieldset>
+            <MatTable Items="@_employeeSelection" Class="mat-elevation-z5" FilterByColumnName="FirstName" SearchTermFieldLabel="Filter by First Name" SearchTermFieldPlaceHolder="Employee" ShowPaging="true" PageSize="5">
+                <MatTableHeader>
+                    <th>Staff Members</th>
+                    <th>Is Member of Department?</th>
+                </MatTableHeader>
+                <MatTableRow>
+                    <td>@context.FullName</td>
+                    <td>
+                        <MatCheckbox TValue="bool" Value="@context.IsSelected" ValueChanged="()=>CheckIfSelceted(context)"></MatCheckbox>
+                    </td>
+                </MatTableRow>
+            </MatTable>
+        </MatDialogContent>
+        <MatDialogActions>
+            <MatButton OnClick="@(e => { _isInsertDialogOpen = false; })">Cancel</MatButton>
+            <MatButton OnClick="@InsertDepartmentAsync">Save</MatButton>
+        </MatDialogActions>
+    </MatDialog>
+</AuthorizedAsAdmin>
+
+<AuthorizedAsAdmin>
+    <MatDialog @bind-IsOpen="@_isEditDialogOpen">
+        <MatDialogTitle>Edit Department</MatDialogTitle>
+        <MatDialogContent>
+            <fieldset>
+                <div class="form-group">
+                    <MatTextField @bind-Value="@_currentDepartmentName" Disabled="false" Label="Department Name" Icon="add" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+                </div>
+            </fieldset>
+            <MatTable Items="@_employeeSelection" Class="mat-elevation-z5" FilterByColumnName="FirstName" SearchTermFieldLabel="Filter by First Name" SearchTermFieldPlaceHolder="Employee" ShowPaging="true" PageSize="5">
+                <MatTableHeader>
+                    <th>Staff Members</th>
+                    <th>Is Member of Department?</th>
+                </MatTableHeader>
+                <MatTableRow>
+                    <td>@context.FullName</td>
+                    <td>
+                        <MatCheckbox TValue="bool" Value="@context.IsSelected" ValueChanged="()=>CheckIfSelceted(context)"></MatCheckbox>
+                    </td>
+                </MatTableRow>
+            </MatTable>
+        </MatDialogContent>
+        <MatDialogActions>
+            <MatButton OnClick="@(e => { _isEditDialogOpen = false; })">Cancel</MatButton>
+            <MatButton OnClick="@EditDepartmentAsync">Save</MatButton>
+        </MatDialogActions>
+    </MatDialog>
+</AuthorizedAsAdmin>
+
+<AuthorizedAsAdmin>
+    <MatDialog @bind-IsOpen="@_isDeleteDialogOpen" Style="z-index:100">
+        <MatDialogTitle><MatIcon Icon="warning"></MatIcon> Confirm Delete</MatDialogTitle>
+        <MatDialogContent>
+            Are you sure you want to delete the department "@_currentDepartmentName" ?
+        </MatDialogContent>
+        <MatDialogActions>
+            <MatButton OnClick="@(e => { _isDeleteDialogOpen = false; })">Cancel</MatButton>
+            <MatButton OnClick="@DeleteDepartmentAsync">Delete</MatButton>
+        </MatDialogActions>
+    </MatDialog>
+</AuthorizedAsAdmin>

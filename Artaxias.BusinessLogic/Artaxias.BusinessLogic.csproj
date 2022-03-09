@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Physical" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Artaxias.Data\Artaxias.Data.csproj" />
+    <ProjectReference Include="..\Artaxias.Document\Artaxias.Document.csproj" />
+    <ProjectReference Include="..\Artaxias.Mailing\Artaxias.Mailing.csproj" />
+    <ProjectReference Include="..\Artaxias.Web\Common\Artaxias.Web.Common.csproj" />
+  </ItemGroup>
+
+</Project>

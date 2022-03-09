@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="5.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="5.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="5.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.8">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.8">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.2" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Artaxias.BusinessLogic\Artaxias.BusinessLogic.csproj" />
+    <ProjectReference Include="..\..\Artaxias.Core.Security\Artaxias.Core.Security.csproj" />
+    <ProjectReference Include="..\..\Artaxias.Data\Artaxias.Data.csproj" />
+    <ProjectReference Include="..\..\Artaxias.Document\Artaxias.Document.csproj" />
+    <ProjectReference Include="..\..\Artaxias.Mailing\Artaxias.Mailing.csproj" />
+    <ProjectReference Include="..\Client\Artaxias.Web.Client.csproj" />
+    <ProjectReference Include="..\Common\Artaxias.Web.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Templates\EmailTemplates\NewUserCredentialsGeneratedEmail.template.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Templates\EmailTemplates\ProvideFeedbackEmail.template.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Templates\EmailTemplates\NewUserConfirmationEmail.template.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Templates\DocumentTemplates\" />
+  </ItemGroup>
+
+
+</Project>

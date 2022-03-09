@@ -1,0 +1,55 @@
+﻿@page "/feedbacks/{EmployeeId:int}"
+
+@attribute [Authorize]
+
+@using Artaxias.Web.Client.Pages.Organization.Employee
+
+@if (_feedbackAboutEmployee == null)
+{
+    <BackButton ReturnUrl="@_returnUrl"></BackButton>
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading...</label>
+    </LoadingBackground>
+}
+else
+{
+    <ProfileTopBar ReturnUrl="@_returnUrl" IsAlignedLeft="true"></ProfileTopBar>
+
+    foreach (var feedback in _feedbackAboutEmployee)
+    {
+        <div class="d-flex justify-content-center">
+            <MatH6>
+                <AuthorizedAsAdmin>
+                    @feedback.Reviewer.FullName
+                </AuthorizedAsAdmin>
+                Feedback About
+                <EmployeeTag EmployeeId="@EmployeeId" EmployeeFullName="@feedback.Reviewee.FullName"></EmployeeTag>
+            </MatH6>
+        </div>
+        <br />
+        <MatAccordion LazyRendering="true">
+            @foreach (var questionAnswer in feedback.QuestionAnswers)
+            {
+                <MatExpansionPanel>
+                    <MatExpansionPanelSummary>
+                        <MatExpansionPanelHeader>
+                            <MatH6>@questionAnswer.Title</MatH6>
+                        </MatExpansionPanelHeader>
+                        <MatExpansionPanelSubHeader>
+                            <MatSubtitle2>@questionAnswer.Description</MatSubtitle2>
+                        </MatExpansionPanelSubHeader>
+                    </MatExpansionPanelSummary>
+                    <MatExpansionPanelDetails>
+                        <MatList>
+                            @foreach (var answer in questionAnswer.AnswerValues)
+                            {
+                                <MatListItem>@answer</MatListItem>
+                                <MatDivider Inset="true"></MatDivider>
+                            }
+                        </MatList>
+                    </MatExpansionPanelDetails>
+                </MatExpansionPanel>
+            }
+        </MatAccordion>
+    }
+}
